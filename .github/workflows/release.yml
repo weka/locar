@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # build and publish in parallel: {linux,darwin,windows}/{amd64,arm64}
-        goos: [linux, windows, darwin]
+        # build and publish in parallel: {linux,darwin}/{amd64,arm64}
+        goos: [linux, darwin]
         goarch: [amd64, arm64]
     steps:
     - uses: actions/checkout@v4
@@ -26,5 +26,4 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
-        goversion: "1.22"
         extra_files: LICENSE readme.md
