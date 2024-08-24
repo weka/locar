@@ -85,6 +85,7 @@ type Explorer struct {
 	includeDirs    bool
 	includeFiles   bool
 	includeLinks   bool
+	includeSocket  bool
 	includeAny     bool
 	started        bool
 	resultsThreads int
@@ -114,6 +115,8 @@ func (e *Explorer) SetIncludedTypes(types []string) {
 			e.includeDirs = true
 		case "link":
 			e.includeLinks = true
+		case "socket":
+			e.includeSocket = true
 		case "all":
 			e.includeAny = true
 		}
@@ -438,6 +441,10 @@ func (e *Explorer) readdir(dir string) {
 				if e.includeLinks || e.includeAny {
 					results = append(results, Result{fullpath, GetIno(dirent)})
 				}
+			case syscall.DT_SOCK:
+				if e.includeSocket || e.includeAny {
+					results = append(results, Result{fullpath, GetIno(dirent)})
+				}
 			default:
 				if e.includeAny {
 					results = append(results, Result{fullpath, GetIno(dirent)})
@@ -465,7 +472,7 @@ type Options struct {
 	Exclude []string `short:"x" long:"exclude" description:"Patterns to exclude. Can be specified multiple times"`
 	Filter  []string `short:"f" long:"filter" description:"Patterns to filter by. Can be specified multiple times"`
 
-	Type []string `short:"t" long:"type" default:"file" default:"dir" default:"link" description:"Search entries of specific type \nPossible values: file, dir, link, all. Can be specified multiple times"`
+	Type []string `short:"t" long:"type" default:"file" default:"dir" default:"link" default:"socket" description:"Search entries of specific type \nPossible values: file, dir, link, socket, all. Can be specified multiple times"`
 
 	Args struct {
 		Directories []string `positional-arg-name:"directories" description:"Directories to search, using current directory if missing"`
@@ -585,6 +592,8 @@ func entryType(direntType uint8) string {
 		return "file"
 	case syscall.DT_LNK:
 		return "link"
+	case syscall.DT_SOCK:
+		return "socket"
 	case syscall.DT_CHR:
 		return "char"
 	default:
