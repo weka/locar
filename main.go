@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/sync/semaphore"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,6 +14,8 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+
+	"golang.org/x/sync/semaphore"
 
 	"github.com/gobwas/glob"
 	"github.com/jessevdk/go-flags"
@@ -90,6 +91,7 @@ type Explorer struct {
 	started        bool
 	resultsThreads int
 	withSizes      bool
+	withTimes      bool
 }
 
 func NewExplorer(ctx context.Context) *Explorer {
@@ -105,7 +107,6 @@ func NewExplorer(ctx context.Context) *Explorer {
 	}
 	return e
 }
-
 func (e *Explorer) SetIncludedTypes(types []string) {
 	for _, t := range types {
 		switch t {
@@ -139,6 +140,29 @@ func (e *Explorer) SetThreads(threads int) {
 	//		log.Println(e.debugInFlight)
 	//	}
 	//}()
+}
+
+// GetFileTimes returns the atime, mtime, and ctime of a file
+func GetFileTimes(path string) (atime, mtime, ctime time.Time, err error) {
+	// Get file information using os.Stat (which implements fs.FileInfo)
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}, time.Time{}, time.Time{}, err
+	}
+
+	// Extract modification time (mtime) using fs.FileInfo
+	mtime = fileInfo.ModTime()
+
+	// Get the underlying data from the os.FileInfo object for atime and ctime
+	stat := fileInfo.Sys().(*syscall.Stat_t)
+
+	// Extract access time (atime)
+	atime = time.Unix(stat.Atim.Sec, stat.Atim.Nsec)
+
+	// Extract change time (ctime)
+	ctime = time.Unix(stat.Ctim.Sec, stat.Ctim.Nsec)
+
+	return atime, mtime, ctime, nil
 }
 
 func (e *Explorer) dumpResults() {
@@ -185,6 +209,15 @@ func (e *Explorer) dumpResults() {
 				} else {
 					outputBuffer.WriteString(fmt.Sprintf(" %d", fileStat.Size()))
 				}
+			}
+			if e.withTimes {
+				atime, mtime, ctime, err := GetFileTimes(result.name)
+				if err != nil {
+					// Handle error appropriately
+					log.Println(err)
+					outputBuffer.WriteString("0")
+				}
+				outputBuffer.WriteString(fmt.Sprintf(" %d %d %d", atime.Unix(), mtime.Unix(), ctime.Unix()))
 			}
 			// ^ Extract
 			outputBuffer.WriteString("\n")
@@ -467,6 +500,7 @@ type Options struct {
 	Raw           bool `long:"raw" description:"Output filenames as escaped strings"`
 	Threads       int  `short:"j" long:"jobs" description:"Number of jobs(threads)" default:"128"`
 	WithSizes     bool `long:"with-size" description:"Output file sizes along with filenames"`
+	WithTimes     bool `long:"with-times" description:"Output file with atime, mtime, ctime along with filenames"`
 	ResultThreads int  `long:"result-jobs" description:"Number of jobs for processing results, like doing stats to get file sizes" default:"128"`
 
 	Exclude []string `short:"x" long:"exclude" description:"Patterns to exclude. Can be specified multiple times"`
@@ -520,6 +554,7 @@ func main() {
 	explorer.timeout = opts.Timeout
 	explorer.resultsThreads = opts.ResultThreads
 	explorer.withSizes = opts.WithSizes
+	explorer.withTimes = opts.WithTimes
 
 	for _, exclude := range opts.Exclude {
 		explorer.excludes = append(explorer.excludes, glob.MustCompile(exclude))
