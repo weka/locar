@@ -56,8 +56,11 @@ type resultStore struct {
 }
 
 type Result struct {
-	name string
-	ino  uint64
+	name  string
+	ino   uint64
+	atime time.Time
+	mtime time.Time
+	ctime time.Time
 }
 
 type Explorer struct {
@@ -180,36 +183,40 @@ func checkTimeCondition(timestamp time.Time, condition TimeCondition) bool {
 }
 
 // checkFileTimeConditions retrieves file times and checks them against the given conditions
-func (e *Explorer) checkFileTimeConditions(fullpath string) (bool, error) {
+func (e *Explorer) checkFileTimeConditions(fullpath string, ino uint64) (Result, bool, error) {
 	// Retrieve atime, ctime, and mtime of the file
 	atime, ctime, mtime, err := GetFileTimes(fullpath)
 	if err != nil {
 		// Handle error appropriately
 		log.Println(err)
-		return false, err
+		return Result{}, false, err
 	}
 
 	// Create time conditions based on the Explorer's settings
 	atimeCond := createTimeConditions(&e.atimeOlderThan, &e.atimeNewerThan)
 	ctimeCond := createTimeConditions(&e.ctimeOlderThan, &e.ctimeNewerThan)
 	mtimeCond := createTimeConditions(&e.mtimeOlderThan, &e.mtimeNewerThan)
-	fmt.Println("atimeOlderThan: ", e.atimeOlderThan)
+	// fmt.Println("atimeOlderThan: ", e.atimeOlderThan)
 	// fmt.Println("atimeCond: ", e.atimeOlderThan, e.atimeNewerThan, fullpath)
 	// Check each time condition
 	if !checkTimeCondition(atime, atimeCond) {
-		return false, nil
+		return Result{}, false, nil
 	}
 	if !checkTimeCondition(ctime, ctimeCond) {
-		return false, nil
-		// fmt.Println("ctimeCond: ")
+		return Result{}, false, nil
 	}
 	if !checkTimeCondition(mtime, mtimeCond) {
-		//return false, nil
-		fmt.Println("mtimeCond: ")
+		return Result{}, false, nil
 	}
 
 	// All conditions passed
-	return true, nil
+	return Result{
+		name:  fullpath,
+		ino:   ino,
+		atime: atime,
+		mtime: mtime,
+		ctime: ctime,
+	}, true, nil
 }
 
 // createTimeConditions creates and returns the TimeCondition structs for time
@@ -306,13 +313,7 @@ func (e *Explorer) dumpResults() {
 				}
 			}
 			if e.withTimes {
-				atime, mtime, ctime, err := GetFileTimes(result.name)
-				if err != nil {
-					// Handle error appropriately
-					log.Println(err)
-					outputBuffer.WriteString("0")
-				}
-				outputBuffer.WriteString(fmt.Sprintf(" %d %d %d", atime.Unix(), mtime.Unix(), ctime.Unix()))
+				outputBuffer.WriteString(fmt.Sprintf(" %d %d %d", result.atime.Unix(), result.mtime.Unix(), result.ctime.Unix()))
 			}
 			// ^ Extract
 			outputBuffer.WriteString("\n")
@@ -560,31 +561,31 @@ func (e *Explorer) readdir(dir string) {
 			case syscall.DT_DIR:
 				if e.includeDirs || e.includeAny {
 					if e.atimeOlderThan != 0 || e.atimeNewerThan != 0 {
-						ok, err := e.checkFileTimeConditions(fullpath)
-						if err != nil {
+						// Call the helper function to check file times and get the Result struct
+						result, ok, err := e.checkFileTimeConditions(fullpath, GetIno(dirent))
+						if err != nil || !ok {
 							continue
 						}
-						if !ok {
-							continue
-						}
+						results = append(results, result)
+					} else {
+						results = append(results, Result{fullpath + string(filepath.Separator), GetIno(dirent), time.Time{}, time.Time{}, time.Time{}})
 					}
-					results = append(results, Result{fullpath + string(filepath.Separator), GetIno(dirent)})
 				}
 			case syscall.DT_REG:
 				if e.includeFiles || e.includeAny {
-					results = append(results, Result{fullpath, GetIno(dirent)})
+					results = append(results, Result{fullpath, GetIno(dirent), time.Time{}, time.Time{}, time.Time{}})
 				}
 			case syscall.DT_LNK:
 				if e.includeLinks || e.includeAny {
-					results = append(results, Result{fullpath, GetIno(dirent)})
+					results = append(results, Result{fullpath, GetIno(dirent), time.Time{}, time.Time{}, time.Time{}})
 				}
 			case syscall.DT_SOCK:
 				if e.includeSocket || e.includeAny {
-					results = append(results, Result{fullpath, GetIno(dirent)})
+					results = append(results, Result{fullpath, GetIno(dirent), time.Time{}, time.Time{}, time.Time{}})
 				}
 			default:
 				if e.includeAny {
-					results = append(results, Result{fullpath, GetIno(dirent)})
+					results = append(results, Result{fullpath, GetIno(dirent), time.Time{}, time.Time{}, time.Time{}})
 				} else {
 					log.Printf("Skipped record: %s iNode<%d>[type:%s]\n", fullpath, GetIno(dirent), entryType(dirent.Type))
 				}
