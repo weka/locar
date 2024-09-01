@@ -183,9 +183,9 @@ func checkTimeCondition(timestamp time.Time, condition TimeCondition) bool {
 }
 
 // checkFileTimeConditions retrieves file times and checks them against the given conditions
-func (e *Explorer) checkFileTimeConditions(fullpath string, ino uint64) (Result, bool, error) {
+func (e *Explorer) checkFileTimeConditions(fullpath string) (Result, bool, error) {
 	// Retrieve atime, ctime, and mtime of the file
-	atime, ctime, mtime, err := GetFileTimes(fullpath)
+	atime, mtime, ctime, err := GetFileTimes(fullpath)
 	if err != nil {
 		// Handle error appropriately
 		log.Println(err)
@@ -212,7 +212,6 @@ func (e *Explorer) checkFileTimeConditions(fullpath string, ino uint64) (Result,
 	// All conditions passed
 	return Result{
 		name:  fullpath,
-		ino:   ino,
 		atime: atime,
 		mtime: mtime,
 		ctime: ctime,
@@ -560,14 +559,15 @@ func (e *Explorer) readdir(dir string) {
 			switch dirent.Type {
 			case syscall.DT_DIR:
 				if e.includeDirs || e.includeAny {
-					if e.atimeOlderThan != 0 || e.atimeNewerThan != 0 {
+					if e.atimeOlderThan != 0 || e.atimeNewerThan != 0 || e.ctimeOlderThan != 0 || e.ctimeNewerThan != 0 || e.mtimeOlderThan != 0 || e.mtimeNewerThan != 0 {
 						// Call the helper function to check file times and get the Result struct
-						result, ok, err := e.checkFileTimeConditions(fullpath, GetIno(dirent))
+						result, ok, err := e.checkFileTimeConditions(fullpath)
 						if err != nil || !ok {
 							continue
 						}
 						results = append(results, result)
 					} else {
+						fmt.Println("test_dir")
 						results = append(results, Result{fullpath + string(filepath.Separator), GetIno(dirent), time.Time{}, time.Time{}, time.Time{}})
 					}
 				}
