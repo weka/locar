@@ -251,14 +251,14 @@ func GetFileTimes(path string) (atime, mtime, ctime time.Time, err error) {
 		return time.Time{}, time.Time{}, time.Time{}, err
 	}
 
-	// Extract modification time (mtime) using fs.FileInfo
-	mtime = fileInfo.ModTime()
-
 	// Get the underlying data from the os.FileInfo object for atime and ctime
 	stat := fileInfo.Sys().(*syscall.Stat_t)
 
 	// Extract access time (atime)
 	atime = time.Unix(stat.Atim.Sec, stat.Atim.Nsec)
+
+	// Extract modification time (mtime)
+	mtime = time.Unix(stat.Mtim.Sec, stat.Mtim.Nsec)
 
 	// Extract change time (ctime)
 	ctime = time.Unix(stat.Ctim.Sec, stat.Ctim.Nsec)
