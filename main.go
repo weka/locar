@@ -316,9 +316,11 @@ func (e *Explorer) dumpResults() {
 			if e.delete {
 				err := os.Remove(result.name)
 				if err != nil {
-					log.Printf("Error deleting file %s: %v\n", result.name, err)
+					log.Printf("Delete failed: %s - Error: %v\n", result.name, err)
+					outputBuffer.WriteString(" [delete_failed]")
 				} else {
-					outputBuffer.WriteString(" deleted")
+					log.Printf("Delete success: %s\n", result.name)
+					outputBuffer.WriteString(" [delete_success]")
 				}
 			}
 
@@ -655,7 +657,7 @@ type Options struct {
 	CtimeOlderThan time.Duration `long:"ctime-older-than" description:"Filter files by change time older than this duration (e.g., 24h5m25s)" default:"0s"`
 	CtimeNewerThan time.Duration `long:"ctime-newer-than" description:"Filter files by change time newer than this duration (e.g., 24h5m25s)" default:"0s"`
 	ResultThreads  int           `long:"result-jobs" description:"Number of jobs for processing results, like doing stats to get file sizes" default:"128"`
-	Delete         bool          `short:"d" long:"delete" description:"Delete found files"`
+	Delete         bool          `long:"delete" description:"Delete found files"`
 
 	Exclude []string `short:"x" long:"exclude" description:"Patterns to exclude. Can be specified multiple times"`
 	Filter  []string `short:"f" long:"filter" description:"Patterns to filter by. Can be specified multiple times"`
