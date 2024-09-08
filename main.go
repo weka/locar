@@ -99,6 +99,8 @@ type Explorer struct {
 	ctimeOlderThan time.Duration
 	ctimeNewerThan time.Duration
 
+	delete         bool
+	deleteAll      bool
 	includeDirs    bool
 	includeFiles   bool
 	includeLinks   bool
@@ -108,7 +110,6 @@ type Explorer struct {
 	resultsThreads int
 	withSizes      bool
 	withTimes      bool
-	delete         bool
 }
 
 func NewExplorer(ctx context.Context) *Explorer {
@@ -312,7 +313,7 @@ func (e *Explorer) dumpResults() {
 				outputBuffer.WriteString(fmt.Sprintf(" %d %d %d", result.atime.Unix(), result.mtime.Unix(), result.ctime.Unix()))
 			}
 
-			// Delete files
+			// Delete ignore non empty dir
 			if e.delete {
 				err := os.Remove(result.name)
 				if err != nil {
@@ -324,6 +325,17 @@ func (e *Explorer) dumpResults() {
 				}
 			}
 
+			// Delete not ignore non empty dir
+			if e.deleteAll {
+				err := os.RemoveAll(result.name)
+				if err != nil {
+					log.Printf("Delete failed: %s - Error: %v\n", result.name, err)
+					outputBuffer.WriteString(" [delete_failed]")
+				} else {
+					log.Printf("Delete success: %s\n", result.name)
+					outputBuffer.WriteString(" [delete_success]")
+				}
+			}
 			outputBuffer.WriteString("\n")
 			if outputBuffer.Len() > 4*1024 {
 				flush()
@@ -657,7 +669,8 @@ type Options struct {
 	CtimeOlderThan time.Duration `long:"ctime-older-than" description:"Filter files by change time older than this duration (e.g., 24h5m25s)" default:"0s"`
 	CtimeNewerThan time.Duration `long:"ctime-newer-than" description:"Filter files by change time newer than this duration (e.g., 24h5m25s)" default:"0s"`
 	ResultThreads  int           `long:"result-jobs" description:"Number of jobs for processing results, like doing stats to get file sizes" default:"128"`
-	Delete         bool          `long:"delete" description:"Delete found files"`
+	Delete         bool          `long:"delete" description:"Delete found files. Non empty directories will be ignored"`
+	DeleteAll      bool          `long:"delete-all" description:"Delete found files. Non empty directories will be removed with ALL their contents!!!"`
 
 	Exclude []string `short:"x" long:"exclude" description:"Patterns to exclude. Can be specified multiple times"`
 	Filter  []string `short:"f" long:"filter" description:"Patterns to filter by. Can be specified multiple times"`
@@ -718,6 +731,7 @@ func main() {
 	explorer.ctimeOlderThan = opts.CtimeOlderThan
 	explorer.ctimeNewerThan = opts.CtimeNewerThan
 	explorer.delete = opts.Delete
+	explorer.deleteAll = opts.DeleteAll
 
 	for _, exclude := range opts.Exclude {
 		explorer.excludes = append(explorer.excludes, glob.MustCompile(exclude))
