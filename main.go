@@ -304,7 +304,7 @@ func (e *Explorer) dumpResults() {
 					log.Println(err)
 					outputBuffer.WriteString("0")
 				} else {
-					outputBuffer.WriteString(fmt.Sprintf(" ", fileStat.Size()))
+					outputBuffer.WriteString(fmt.Sprintf(" %d", fileStat.Size()))
 				}
 			}
 			// Show atime, mtime, ctime
