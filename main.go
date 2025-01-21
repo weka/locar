@@ -662,12 +662,12 @@ type Options struct {
 	Threads        int           `short:"j" long:"jobs" description:"Number of jobs(threads)" default:"128"`
 	WithSizes      bool          `long:"with-size" description:"Output file sizes along with filenames"`
 	WithTimes      bool          `long:"with-times" description:"Output file with atime, mtime, ctime along with filenames"`
-	AtimeOlderThan time.Duration `long:"atime-older-than" description:"Filter files by access time older than this duration (e.g., 24h5m25s)" default:"0s"`
-	AtimeNewerThan time.Duration `long:"atime-newer-than" description:"Filter files by access time newer than this duration (e.g., 24h5m25s)" default:"0s"`
-	MtimeOlderThan time.Duration `long:"mtime-older-than" description:"Filter files by modification time older than this duration (e.g., 24h5m25s)" default:"0s"`
-	MtimeNewerThan time.Duration `long:"mtime-newer-than" description:"Filter files by modification time newer than this duration (e.g., 24h5m25s)" default:"0s"`
-	CtimeOlderThan time.Duration `long:"ctime-older-than" description:"Filter files by change time older than this duration (e.g., 24h5m25s)" default:"0s"`
-	CtimeNewerThan time.Duration `long:"ctime-newer-than" description:"Filter files by change time newer than this duration (e.g., 24h5m25s)" default:"0s"`
+	AtimeOlderThan time.Duration `long:"atime-older" description:"Filter files by access time older than this duration (e.g., 24h5m25s)" default:"0s"`
+	AtimeNewerThan time.Duration `long:"atime-newer" description:"Filter files by access time newer than this duration (e.g., 24h5m25s)" default:"0s"`
+	MtimeOlderThan time.Duration `long:"mtime-older" description:"Filter files by modification time older than this duration (e.g., 24h5m25s)" default:"0s"`
+	MtimeNewerThan time.Duration `long:"mtime-newer" description:"Filter files by modification time newer than this duration (e.g., 24h5m25s)" default:"0s"`
+	CtimeOlderThan time.Duration `long:"ctime-older" description:"Filter files by change time older than this duration (e.g., 24h5m25s)" default:"0s"`
+	CtimeNewerThan time.Duration `long:"ctime-newer" description:"Filter files by change time newer than this duration (e.g., 24h5m25s)" default:"0s"`
 	ResultThreads  int           `long:"result-jobs" description:"Number of jobs for processing results, like doing stats to get file sizes" default:"128"`
 	Delete         bool          `long:"delete" description:"Delete found files. Non empty directories will be ignored"`
 	DeleteAll      bool          `long:"delete-all" description:"Delete found files. Non empty directories will be removed with ALL their contents!!!"`
