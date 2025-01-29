@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -43,6 +44,7 @@ type controlChannel chan null
 const direntNameOffset = uint64(unsafe.Offsetof(syscall.Dirent{}.Name))
 
 var timeoutError = errors.New("timed out")
+var Version = "v0.1.0"
 
 type dirStore struct {
 	sync.Mutex
@@ -671,6 +673,7 @@ type Options struct {
 	ResultThreads  int           `long:"result-jobs" description:"Number of jobs for processing results, like doing stats to get file sizes" default:"128"`
 	Delete         bool          `long:"delete" description:"Delete found files. Non empty directories will be ignored"`
 	DeleteAll      bool          `long:"delete-all" description:"Delete found files. Non empty directories will be removed with ALL their contents!!!"`
+	Version        bool          `short:"v" long:"version" description:"Show version"`
 
 	Exclude []string `short:"x" long:"exclude" description:"Patterns to exclude. Can be specified multiple times"`
 	Filter  []string `short:"f" long:"filter" description:"Patterns to filter by. Can be specified multiple times"`
@@ -687,7 +690,10 @@ type Options struct {
 func getOpts() *Options {
 	opts := &Options{}
 	_, err := flags.Parse(opts)
-
+	if opts.Version {
+		fmt.Printf("%s version %s\n", path.Base(os.Args[0]), Version)
+		os.Exit(0)
+	}
 	if flagsErr, ok := err.(*flags.Error); ok {
 		if flagsErr.Type == flags.ErrHelp {
 			os.Exit(0)
