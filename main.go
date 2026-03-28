@@ -254,13 +254,13 @@ func GetFileTimes(path string) (atime, mtime, ctime time.Time, err error) {
 	stat := fileInfo.Sys().(*syscall.Stat_t)
 
 	// Extract access time (atime)
-	atime = time.Unix(stat.Atim.Sec, stat.Atim.Nsec)
+	atime = time.Unix(stat.Atimespec.Sec, stat.Atimespec.Nsec)
 
 	// Extract modification time (mtime)
-	mtime = time.Unix(stat.Mtim.Sec, stat.Mtim.Nsec)
+	mtime = time.Unix(stat.Mtimespec.Sec, stat.Mtimespec.Nsec)
 
 	// Extract change time (ctime)
-	ctime = time.Unix(stat.Ctim.Sec, stat.Ctim.Nsec)
+	ctime = time.Unix(stat.Ctimespec.Sec, stat.Ctimespec.Nsec)
 
 	return atime, mtime, ctime, nil
 }
